@@ -1,0 +1,73 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - ProjectPlanner.Api/*
+    - ProjectPlanner.Commands/*
+    - ProjectPlanner.Queries/*
+    - ProjectPlanner.Domain/*
+
+variables:
+  - group: aws-credentials # Create this variable group in Azure DevOps
+  - name: AWS_REGION
+    value: 'us-east-1'
+  - name: ECR_REPOSITORY
+    value: 'projectplanner-api'
+  - name: IMAGE_TAG
+    value: '$(Build.BuildNumber)'
+
+stages:
+- stage: Build
+  displayName: 'Build and Push'
+  jobs:
+  - job: BuildAndPush
+    displayName: 'Build and Push Docker Image'
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+    - task: UseDotNet@2
+      inputs:
+        packageType: 'sdk'
+        version: '8.x'
+        installationPath: $(Agent.ToolsDirectory)/dotnet
+      displayName: 'Install .NET 8 SDK'
+
+    - task: AWSShellScript@1
+      inputs:
+        awsCredentials: 'AWS'  # AWS Service Connection name
+        regionName: $(AWS_REGION)
+        scriptType: 'inline'
+        inlineScript: |
+          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+      displayName: 'Login to ECR'
+      env:
+        AWS_ACCOUNT_ID: $(AWS_ACCOUNT_ID)
+
+    - task: Docker@2
+      inputs:
+        command: 'build'
+        Dockerfile: '**/ProjectPlanner.Api/Dockerfile'
+        buildContext: '$(Build.SourcesDirectory)'
+        tags: |
+          $(ECR_REPOSITORY):$(IMAGE_TAG)
+          $(ECR_REPOSITORY):latest
+      displayName: 'Build Docker Image'
+
+    - task: AWSShellScript@1
+      inputs:
+        awsCredentials: 'AWS'  # AWS Service Connection name
+        regionName: $(AWS_REGION)
+        scriptType: 'inline'
+        inlineScript: |
+          # Tag and push image with build number
+          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          
+          # Tag and push as latest
+          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
+          docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
+      displayName: 'Push to ECR'
+      env:
+        AWS_ACCOUNT_ID: $(AWS_ACCOUNT_ID)

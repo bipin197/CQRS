@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="4.0.2" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.7" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ProjectPlanner.Domain\ProjectPlanner.Domain.csproj" />
+    <ProjectReference Include="..\ProjectPlanner.Commands\ProjectPlanner.Commands.csproj" />
+    <ProjectReference Include="..\ProjectPlanner.Queries\ProjectPlanner.Queries.csproj" />
+  </ItemGroup>
+
+</Project>
