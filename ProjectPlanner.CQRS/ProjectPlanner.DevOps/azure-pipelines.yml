@@ -10,15 +10,12 @@ trigger:
     - ProjectPlanner.Domain/*
 
 variables:
-  - group: aws-credentials # Will be created in Infrastructure stage
   - name: AWS_REGION
-    value: 'us-east-1'
+    value: 'ap-south-1'
   - name: ECR_REPOSITORY
     value: 'projectplanner-api'
   - name: IMAGE_TAG
     value: '$(Build.BuildNumber)'
-  - name: AZURE_DEVOPS_PAT
-    value: '$(System.AccessToken)' # Built-in Azure DevOps PAT
 
 stages:
 - stage: Infrastructure
@@ -71,64 +68,16 @@ stages:
               --region $(AWS_REGION)
           fi
 
-    - task: PowerShell@2
-      name: createVariableGroup
+    - task: AWSShellScript@1
+      name: getAccountId
       inputs:
-        targetType: 'inline'
-        script: |
-          $base64AuthInfo = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$env:AZURE_DEVOPS_PAT"))
-          
-          $headers = @{
-              Authorization = "Basic $base64AuthInfo"
-              'Content-Type' = 'application/json'
-          }
-          
-          $variableGroup = @{
-              name = "aws-credentials"
-              type = "Vsts"
-              variables = @{
-                  AWS_ACCESS_KEY_ID = @{
-                      value = $env:AWS_ACCESS_KEY_ID
-                      isSecret = $true
-                  }
-                  AWS_SECRET_ACCESS_KEY = @{
-                      value = $env:AWS_SECRET_ACCESS_KEY
-                      isSecret = $true
-                  }
-                  AWS_ACCOUNT_ID = @{
-                      value = $env:AWS_ACCOUNT_ID
-                      isSecret = $false
-                  }
-              }
-          }
-          
-          $jsonBody = $variableGroup | ConvertTo-Json -Depth 10
-          
-          $organization = $env:SYSTEM_COLLECTIONURI
-          $project = $env:SYSTEM_TEAMPROJECT
-          
-          $apiUrl = "${organization}${project}/_apis/distributedtask/variablegroups?api-version=7.1-preview.2"
-          
-          try {
-              $existingGroups = Invoke-RestMethod -Uri $apiUrl -Headers $headers -Method Get
-              $exists = $existingGroups.value | Where-Object { $_.name -eq "aws-credentials" }
-              
-              if (-not $exists) {
-                  $response = Invoke-RestMethod -Uri $apiUrl -Method Post -Headers $headers -Body $jsonBody
-                  Write-Host "Variable group 'aws-credentials' created successfully with ID: $($response.id)"
-              } else {
-                  Write-Host "Variable group 'aws-credentials' already exists with ID: $($exists.id)"
-              }
-          }
-          catch {
-              Write-Error "Failed to manage variable group: $_"
-              exit 1
-          }
-      env:
-        AZURE_DEVOPS_PAT: $(System.AccessToken)
-        AWS_ACCESS_KEY_ID: $(AWS_ACCESS_KEY_ID)
-        AWS_SECRET_ACCESS_KEY: $(AWS_SECRET_ACCESS_KEY)
-        AWS_ACCOUNT_ID: $(AWS_ACCOUNT_ID)
+        awsCredentials: 'AWS'
+        regionName: $(AWS_REGION)
+        scriptType: 'inline'
+        inlineScript: |
+          # Get AWS Account ID
+          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          echo "##vso[task.setvariable variable=AWS_ACCOUNT_ID]$ACCOUNT_ID"
 
 - stage: Build
   displayName: 'Build and Push'

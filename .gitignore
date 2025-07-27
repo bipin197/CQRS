@@ -82,3 +82,5 @@ ProjectPlanner.Queries.sourcelink.json
 ProjectPlanner.Queries.csproj.nuget.dgspec.json
 ProjectPlanner.Queries.csproj.nuget.g.props
 ProjectPlanner.Queries.csproj.nuget.g.targets
+
+.fake
