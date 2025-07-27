@@ -1,5 +1,6 @@
-using Amazon.Extensions.NETCore.Setup;
+using Amazon.Runtime;
 using Amazon.S3;
+using ProjectPlanner.Api.Config;
 using ProjectPlanner.Api.Middleware;
 using ProjectPlanner.Api.Services;
 using ProjectPlanner.Commands.Implementations;
@@ -10,14 +11,32 @@ using ProjectPlanner.Queries.Interfaces;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Add AWS S3 client
-builder.Services.AddAWSService<IAmazonS3>();
+// Configure AWS Services
+var awsSection = builder.Configuration.GetSection("AWS");
+var awsOptions = awsSection.Get<AWSOptions>();
+
+var credentials = new BasicAWSCredentials(
+    awsOptions?.Credentials?.AccessKey ?? Environment.GetEnvironmentVariable("AWS_ACCESS_KEY_ID"),
+    awsOptions?.Credentials?.SecretKey ?? Environment.GetEnvironmentVariable("AWS_SECRET_ACCESS_KEY")
+);
+
+builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client(
+    credentials,
+    new AmazonS3Config
+    {
+        RegionEndpoint = Amazon.RegionEndpoint.APSouth1,
+        ServiceURL = awsOptions?.ServiceURL
+    }
+));
+
+// Add S3 services
 builder.Services.AddSingleton<S3Storage>();
+builder.Services.AddHostedService<S3SyncService>();
+builder.Services.AddSingleton<IS3DataSync>(sp => sp.GetRequiredService<S3SyncService>());
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
@@ -28,9 +47,6 @@ builder.Services.AddScoped<IProjectCommands, ProjectCommands>();
 builder.Services.AddScoped<IActivityCommands, ActivityCommands>();
 builder.Services.AddScoped<IProjectQueries, ProjectQueries>();
 builder.Services.AddScoped<IActivityQueries, ActivityQueries>();
-
-// Add Background Service
-builder.Services.AddHostedService<S3SyncService>();
 
 var app = builder.Build();
 
@@ -46,29 +62,5 @@ app.UseHttpsRedirection();
 // Add Exception Handling Middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
+app.MapControllers();
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

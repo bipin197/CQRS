@@ -14,12 +14,15 @@ namespace ProjectPlanner.Queries.Implementations
             _cache = cache;
         }
 
-        public IEnumerable<Project> GetProjects()
+        public IEnumerable<Project> GetProjects() => GetAllProjects();
+        public IEnumerable<Activity> GetActivities() => GetAllActivities();
+
+        public IEnumerable<Project> GetAllProjects()
         {
             return _cache.Get<List<Project>>(PROJECT_KEY) ?? new List<Project>();
         }
 
-        public IEnumerable<Activity> GetActivities()
+        public IEnumerable<Activity> GetAllActivities()
         {
             return _cache.Get<List<Activity>>(ACTIVITY_KEY) ?? new List<Activity>();
         }
