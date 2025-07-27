@@ -1,7 +1,7 @@
 trigger:
   branches:
     include:
-    - main
+    - master
   paths:
     include:
     - ProjectPlanner.Api/*
@@ -20,7 +20,7 @@ variables:
 stages:
 - stage: Infrastructure
   displayName: 'Setup Infrastructure'
-  condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
+  condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
   jobs:
   - job: SetupInfrastructure
     displayName: 'Create ECR and Variable Group'
