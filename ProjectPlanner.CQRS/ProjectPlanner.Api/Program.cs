@@ -34,9 +34,10 @@ builder.Services.AddSingleton<IAmazonS3>(sp => new AmazonS3Client(
 ));
 
 // Add S3 services
+builder.Services.AddSingleton<S3SyncService>();  // Register as singleton first
+builder.Services.AddHostedService(sp => sp.GetRequiredService<S3SyncService>()); // Use the same instance as hosted service
+builder.Services.AddSingleton<IS3DataSync>(sp => sp.GetRequiredService<S3SyncService>()); // Use the same instance for interface
 builder.Services.AddSingleton<S3Storage>();
-builder.Services.AddHostedService<S3SyncService>();
-builder.Services.AddSingleton<IS3DataSync>(sp => sp.GetRequiredService<S3SyncService>());
 
 // Add Memory Cache
 builder.Services.AddMemoryCache();
