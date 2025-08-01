@@ -75,12 +75,19 @@ stages:
         regionName: $(AWS_REGION)
         scriptType: 'inline'
         inlineScript: |
-          # Get AWS Account ID
-          ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-          echo "##vso[task.setvariable variable=AWS_ACCOUNT_ID]$ACCOUNT_ID"
+          # Get AWS Account ID and store it
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          echo "Account ID is: $AWS_ACCOUNT_ID"
+          # Store for current job
+          echo "##vso[task.setvariable variable=AWS_ACCOUNT_ID]$AWS_ACCOUNT_ID"
+          # Store for next stage
+          echo "##vso[task.setvariable variable=AWS_ACCOUNT_ID;isOutput=true]$AWS_ACCOUNT_ID"
 
 - stage: Build
   displayName: 'Build and Push'
+  dependsOn: Infrastructure
+  variables:
+    AWS_ACCOUNT_ID: $[ stageDependencies.Infrastructure.SetupInfrastructure.outputs['getAccountId.AWS_ACCOUNT_ID'] ]
   jobs:
   - job: BuildAndPush
     displayName: 'Build and Push Docker Image'
@@ -100,10 +107,11 @@ stages:
         regionName: $(AWS_REGION)
         scriptType: 'inline'
         inlineScript: |
-          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
+          # Get account ID again in this stage
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          echo "Using AWS Account ID: $AWS_ACCOUNT_ID"
+          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com
       displayName: 'Login to ECR'
-      env:
-        AWS_ACCOUNT_ID: $(AWS_ACCOUNT_ID)
 
     - task: Docker@2
       inputs:
@@ -121,13 +129,14 @@ stages:
         regionName: $(AWS_REGION)
         scriptType: 'inline'
         inlineScript: |
+          # Get account ID for this step
+          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          
           # Tag and push image with build number
-          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
-          docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
           
           # Tag and push as latest
-          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
-          docker push $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
+          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
+          docker push $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
       displayName: 'Push to ECR'
-      env:
-        AWS_ACCOUNT_ID: $(AWS_ACCOUNT_ID)
