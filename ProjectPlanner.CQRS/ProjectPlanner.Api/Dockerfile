@@ -20,6 +20,4 @@ RUN dotnet publish "ProjectPlanner.Api.csproj" -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-# Copy the data files
-COPY ["Data/", "/app/Data/"]
 ENTRYPOINT ["dotnet", "ProjectPlanner.Api.dll"]
