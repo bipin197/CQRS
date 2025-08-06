@@ -123,7 +123,7 @@ stages:
     - task: Docker@2
       inputs:
         command: 'build'
-        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
+        Dockerfile: '$(Build.SourcesDirectory)/ProjectPlanner.CQRS/Dockerfile'
         buildContext: '$(Build.SourcesDirectory)'
         tags: |
           $(ECR_REPOSITORY):$(IMAGE_TAG)
