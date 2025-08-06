@@ -113,11 +113,16 @@ stages:
           aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com
       displayName: 'Login to ECR'
 
+    - script: |
+        echo "Listing repo contents"
+        ls -R $(Build.SourcesDirectory)
+      displayName: 'Check repo structure'
+
     - task: Docker@2
       inputs:
         command: 'build'
-        Dockerfile: '**/ProjectPlanner.Api/Dockerfile'
-        buildContext: '$(Build.SourcesDirectory)'
+        Dockerfile: 'ProjectPlanner.Api/Dockerfile'
+        buildContext: '$(Build.SourcesDirectory)/ProjectPlanner.Api'
         tags: |
           $(ECR_REPOSITORY):$(IMAGE_TAG)
           $(ECR_REPOSITORY):latest
