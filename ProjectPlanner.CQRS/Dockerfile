@@ -7,19 +7,19 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy project files
-COPY ["ProjectPlanner.Api/ProjectPlanner.Api.csproj", "ProjectPlanner.Api/"]
-COPY ["ProjectPlanner.Commands/ProjectPlanner.Commands.csproj", "ProjectPlanner.Commands/"]
-COPY ["ProjectPlanner.Queries/ProjectPlanner.Queries.csproj", "ProjectPlanner.Queries/"]
-COPY ["ProjectPlanner.Domain/ProjectPlanner.Domain.csproj", "ProjectPlanner.Domain/"]
+COPY ["ProjectPlanner.CQRS/ProjectPlanner.Api/ProjectPlanner.Api.csproj", "ProjectPlanner.Api/"]
+COPY ["ProjectPlanner.CQRS/ProjectPlanner.Commands/ProjectPlanner.Commands.csproj", "ProjectPlanner.Commands/"]
+COPY ["ProjectPlanner.CQRS/ProjectPlanner.Queries/ProjectPlanner.Queries.csproj", "ProjectPlanner.Queries/"]
+COPY ["ProjectPlanner.CQRS/ProjectPlanner.Domain/ProjectPlanner.Domain.csproj", "ProjectPlanner.Domain/"]
 
 # Restore dependencies
-RUN dotnet restore "ProjectPlanner.Api/ProjectPlanner.Api.csproj"
+RUN dotnet restore "ProjectPlanner.CQRS/ProjectPlanner.Api/ProjectPlanner.Api.csproj"
 
 # Copy source code
 COPY . .
 
 # Build
-WORKDIR "/src/ProjectPlanner.Api"
+WORKDIR "/src/ProjectPlanner.CQRS/ProjectPlanner.Api"
 RUN dotnet build "ProjectPlanner.Api.csproj" -c Release -o /app/build
 
 # Publish
