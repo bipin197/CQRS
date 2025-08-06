@@ -13,7 +13,7 @@ COPY ["ProjectPlanner.CQRS/ProjectPlanner.Queries/ProjectPlanner.Queries.csproj"
 COPY ["ProjectPlanner.CQRS/ProjectPlanner.Domain/ProjectPlanner.Domain.csproj", "ProjectPlanner.Domain/"]
 
 # Restore dependencies
-RUN dotnet restore "ProjectPlanner.CQRS/ProjectPlanner.Api/ProjectPlanner.Api.csproj"
+RUN dotnet restore "ProjectPlanner.Api/ProjectPlanner.Api.csproj"
 
 # Copy source code
 COPY . .
