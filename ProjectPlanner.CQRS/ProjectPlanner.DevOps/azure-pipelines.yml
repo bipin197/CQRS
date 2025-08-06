@@ -114,16 +114,16 @@ stages:
       displayName: 'Login to ECR'
 
     - script: |
-        echo "Listing repo contents"
-        ls -R $(Build.SourcesDirectory)
-        echo "Moving Dockerfile to solution root"
-        cp $(Build.SourcesDirectory)/ProjectPlanner.Api/Dockerfile $(Build.SourcesDirectory)/Dockerfile
-      displayName: 'Setup build environment'
+        echo "Current directory: $PWD"
+        echo "Build.SourcesDirectory: $(Build.SourcesDirectory)"
+        echo "Listing repo contents:"
+        ls -la $(Build.SourcesDirectory)
+      displayName: 'Show build environment'
 
     - task: Docker@2
       inputs:
         command: 'build'
-        Dockerfile: '**/Dockerfile'
+        Dockerfile: '$(Build.SourcesDirectory)/Dockerfile'
         buildContext: '$(Build.SourcesDirectory)'
         tags: |
           $(ECR_REPOSITORY):$(IMAGE_TAG)
