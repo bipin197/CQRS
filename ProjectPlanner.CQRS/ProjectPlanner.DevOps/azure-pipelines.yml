@@ -136,14 +136,21 @@ stages:
         regionName: $(AWS_REGION)
         scriptType: 'inline'
         inlineScript: |
-          # Get account ID for this step
-          export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-          
+          # Get account ID and full ECR repo URL
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$ECR_REPOSITORY"
+
+          echo "ECR URI: $ECR_URI"
+
+          # Authenticate Docker with ECR
+          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com"
+
           # Tag and push image with build number
-          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG)
-          docker push $(ECR_REPOSITORY):$(IMAGE_TAG)
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_URI:$IMAGE_TAG"
+          docker push "$ECR_URI:$IMAGE_TAG"
 
           # Tag and push as latest
-          docker tag $(ECR_REPOSITORY):latest
-          docker push $(ECR_REPOSITORY):latest
+          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_URI:latest"
+          docker push "$ECR_URI:latest"
       displayName: 'Push to ECR'
+
