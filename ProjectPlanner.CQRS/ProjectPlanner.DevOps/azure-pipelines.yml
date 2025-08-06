@@ -140,10 +140,10 @@ stages:
           export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
           
           # Tag and push image with build number
-          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
-          
+          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG)
+          docker push $(ECR_REPOSITORY):$(IMAGE_TAG)
+
           # Tag and push as latest
-          docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):latest
+          docker tag $(ECR_REPOSITORY):latest
+          docker push $(ECR_REPOSITORY):latest
       displayName: 'Push to ECR'
