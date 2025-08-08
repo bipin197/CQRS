@@ -120,29 +120,29 @@ stages:
         ls -la $(Build.SourcesDirectory)
       displayName: 'Show build environment'
 
-  - task: AWSShellScript@1
-    displayName: 'Login to ECR and Build & Push Docker Image'
-    inputs:
-      awsCredentials: 'AWS'
-      regionName: $(AWS_REGION)
-      scriptType: 'inline'
-      inlineScript: |
-        # Get AWS Account ID
-        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-        ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$ECR_REPOSITORY"
+    - task: AWSShellScript@1
+      displayName: 'Login to ECR and Build & Push Docker Image'
+      inputs:
+        awsCredentials: 'AWS'
+        regionName: $(AWS_REGION)
+        scriptType: 'inline'
+        inlineScript: |
+          # Get AWS Account ID
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+          ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$ECR_REPOSITORY"
 
-        echo "ECR URI: $ECR_URI"
+          echo "ECR URI: $ECR_URI"
 
-        # Authenticate Docker with ECR
-        aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com"
+          # Authenticate Docker with ECR
+          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com"
 
-        # Build and push directly
-        docker build -f "$(Build.SourcesDirectory)/ProjectPlanner.CQRS/Dockerfile" \
-          -t "$ECR_URI:$(IMAGE_TAG)" \
-          -t "$ECR_URI:latest" \
-          "$(Build.SourcesDirectory)"
+          # Build and push directly
+          docker build -f "$(Build.SourcesDirectory)/ProjectPlanner.CQRS/Dockerfile" \
+            -t "$ECR_URI:$(IMAGE_TAG)" \
+            -t "$ECR_URI:latest" \
+            "$(Build.SourcesDirectory)"
 
-        docker push "$ECR_URI:$(IMAGE_TAG)"
-        docker push "$ECR_URI:latest"
+          docker push "$ECR_URI:$(IMAGE_TAG)"
+          docker push "$ECR_URI:latest"
 
 
