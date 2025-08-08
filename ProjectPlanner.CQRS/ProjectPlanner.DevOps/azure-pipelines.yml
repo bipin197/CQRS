@@ -120,37 +120,29 @@ stages:
         ls -la $(Build.SourcesDirectory)
       displayName: 'Show build environment'
 
-    - task: Docker@2
-      inputs:
-        command: 'build'
-        Dockerfile: '$(Build.SourcesDirectory)/ProjectPlanner.CQRS/Dockerfile'
-        buildContext: '$(Build.SourcesDirectory)'
-        tags: |
-          $(ECR_REPOSITORY):$(IMAGE_TAG)
-          $(ECR_REPOSITORY):latest
-      displayName: 'Build Docker Image'
+  - task: AWSShellScript@1
+    displayName: 'Login to ECR and Build & Push Docker Image'
+    inputs:
+      awsCredentials: 'AWS'
+      regionName: $(AWS_REGION)
+      scriptType: 'inline'
+      inlineScript: |
+        # Get AWS Account ID
+        AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
+        ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$ECR_REPOSITORY"
 
-    - task: AWSShellScript@1
-      inputs:
-        awsCredentials: 'AWS'  # AWS Service Connection name
-        regionName: $(AWS_REGION)
-        scriptType: 'inline'
-        inlineScript: |
-          # Get account ID and full ECR repo URL
-          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
-          ECR_URI="$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com/$ECR_REPOSITORY"
+        echo "ECR URI: $ECR_URI"
 
-          echo "ECR URI: $ECR_URI"
+        # Authenticate Docker with ECR
+        aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com"
 
-          # Authenticate Docker with ECR
-          aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin "$AWS_ACCOUNT_ID.dkr.ecr.$(AWS_REGION).amazonaws.com"
+        # Build and push directly
+        docker build -f "$(Build.SourcesDirectory)/ProjectPlanner.CQRS/Dockerfile" \
+          -t "$ECR_URI:$(IMAGE_TAG)" \
+          -t "$ECR_URI:latest" \
+          "$(Build.SourcesDirectory)"
 
-          # Tag and push image with build number
-          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_URI:$IMAGE_TAG"
-          docker push "$ECR_URI:$IMAGE_TAG"
+        docker push "$ECR_URI:$(IMAGE_TAG)"
+        docker push "$ECR_URI:latest"
 
-          # Tag and push as latest
-          docker tag "$ECR_REPOSITORY:$IMAGE_TAG" "$ECR_URI:latest"
-          docker push "$ECR_URI:latest"
-      displayName: 'Push to ECR'
 
